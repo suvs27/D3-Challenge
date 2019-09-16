@@ -27,6 +27,7 @@ var chartGroup = svg.append("g")
 
 // Initial Params
 var chosenXAxis = "poverty";
+var chosenYAxis = "healthcare";
 
 
 // function used for updating x-scale var upon click on axis label
@@ -58,7 +59,7 @@ function renderAxes(newXScale, xAxis) {
 // function used for updating circles group with a transition to
 // new circles
 function renderCircles(circlesGroup, newXScale, chosenXaxis) {
-
+    
     circlesGroup.transition()
       .duration(1000)
       .attr("cx", d => newXScale(d[chosenXAxis]));
@@ -66,36 +67,53 @@ function renderCircles(circlesGroup, newXScale, chosenXaxis) {
     return circlesGroup;
   }
 
+// function used for updating the states that appear in circles with a transition to
+// a new axis
+function rendercirclesText(circlesText, xLinearScale, chosenXaxis) {
+  d3.selectAll("#circlesText").text("")
+  circlesText.transition()
+    .duration(1000)
+    .attr("x", d => xLinearScale(d[chosenXAxis]))
+    .text(d => d.abbr)
+  return circlesText;
+}
+
+
 
 // function used for updating circles group with new tooltip
-// function updateToolTip(chosenXAxis, circlesGroup) {
+function updateToolTip(chosenXAxis, circlesGroup) {
 
-//     if (chosenXAxis === "hair_length") {
-//       var label = "Hair Length:";
-//     }
-//     else {
-//       var label = "# of Albums:";
-//     }
+    if (chosenXAxis === "poverty") {
+      var label = "Poverty:";
+    }
+
+    if (chosenXAxis === "income") {
+      var label = "Income:";
+    }
+
+    if (chosenXAxis === "age") {
+      var label = "Age:";
+    }
   
-//     var toolTip = d3.tip()
-//       .attr("class", "tooltip")
-//       .offset([80, -60])
-//       .html(function(d) {
-//         return (`${d.rockband}<br>${label} ${d[chosenXAxis]}`);
-//       });
+    var toolTip = d3.tip()
+      .attr("class", "d3-tip")
+      .offset([40, -70])
+      .html(function(d) {
+        return (`${d.state}<br>${label} ${d[chosenXAxis]}<br>Healthcare: ${d.healthcare}`);
+      });
   
-//     circlesGroup.call(toolTip);
+    circlesGroup.call(toolTip);
   
-//     circlesGroup.on("mouseover", function(data) {
-//       toolTip.show(data);
-//     })
-//       // onmouseout event
-//       .on("mouseout", function(data, index) {
-//         toolTip.hide(data);
-//       });
+    circlesGroup.on("mouseover", function(healthData) {
+      toolTip.show(healthData);
+    })
+      // onmouseout event
+      .on("mouseout", function(healthData, index) {
+        toolTip.hide(healthData);
+      });
   
-//     return circlesGroup;
-//   }
+    return circlesGroup;
+  }
 
 // Retrieve data from the CSV file and execute everything below
 d3.csv("assets/data/data.csv", function(err, healthData) {
@@ -143,8 +161,21 @@ d3.csv("assets/data/data.csv", function(err, healthData) {
       .attr("r", 20)
       .attr("fill", "blue")
       .attr("opacity", ".2");
+    
+    // append initial state labels
+    var circlesText = chartGroup.selectAll()
+      .data(healthData)
+      .enter()
+      .append("text")
+      .attr("x", d => xLinearScale(d[chosenXAxis]))
+      .attr("y", d => yLinearScale(d.healthcare))
+      .text(d => d.abbr)
+      .attr("font-family", "sans-serif")
+      .attr("font-size", "10px")
+      .attr("fill", "black")
+      .attr("id", "circlesText");
   
-    // Create group for  2 x- axis labels
+    // Create group for  3 x- axis labels
     var labelsGroup = chartGroup.append("g")
       .attr("transform", `translate(${width / 2}, ${height + 20})`);
   
@@ -178,8 +209,8 @@ d3.csv("assets/data/data.csv", function(err, healthData) {
       .classed("axis-text", true)
       .text("Healthcare");
   
-    // // updateToolTip function above csv import
-    // var circlesGroup = updateToolTip(chosenXAxis, circlesGroup);
+    // updateToolTip function above csv import
+    var circlesGroup = updateToolTip(chosenXAxis, circlesGroup);
   
     // x axis labels event listener
     labelsGroup.selectAll("text")
@@ -203,9 +234,12 @@ d3.csv("assets/data/data.csv", function(err, healthData) {
   
           // updates circles with new x values
           circlesGroup = renderCircles(circlesGroup, xLinearScale, chosenXAxis);
-  
+
+          // updates circles with new state values
+          circlesText = rendercirclesText(circlesText, xLinearScale, chosenXAxis);
+
           // // updates tooltips with new info
-          // circlesGroup = updateToolTip(chosenXAxis, circlesGroup);
+          circlesGroup = updateToolTip(chosenXAxis, circlesGroup);
 
   
           // changes classes to change bold text
